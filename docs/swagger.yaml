@@ -1,0 +1,59 @@
+basePath: /api
+definitions:
+  main.RateMeasurement:
+    properties:
+      timestamp:
+        type: string
+      value:
+        type: number
+    type: object
+host: gses2.app
+info:
+  contact: {}
+  description: Простий сервер для отримання потучного курса USD до UAH.
+  title: Exchange Rate API
+  version: "1.0"
+paths:
+  /rate:
+    get:
+      description: Запит має повертати поточний курс USD до UAH використовуючи будь-який
+        third party сервіс з публічним АРІ
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.RateMeasurement'
+        "400":
+          description: Invalid status value
+          schema:
+            type: string
+      summary: Отримати поточний курс USD до UAH
+      tags:
+      - rate
+  /subscribe:
+    post:
+      description: Запит має перевірити, чи немає данної електронної адреси в поточній
+        базі даних і, в разі її відсутності, записувати її.
+      parameters:
+      - description: Електронна адреса, яку потрібно підписати
+        in: formData
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: E-mail додано
+          schema:
+            type: string
+        "409":
+          description: Повертати, якщо e-mail вже є в базі даних
+          schema:
+            type: string
+      summary: Підписати емейл на отримання поточного курсу
+      tags:
+      - subscription
+swagger: "2.0"

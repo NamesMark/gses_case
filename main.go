@@ -7,9 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+
+	docs "github.com/NamesMark/gses_case/docs"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var db *sqlx.DB
@@ -29,6 +34,13 @@ type ExchangeRateResp struct {
 	Date     string             `json:"date"`
 }
 
+// @Summary Отримати поточний курс USD до UAH
+// @Description Запит має повертати поточний курс USD до UAH використовуючи будь-який third party сервіс з публічним АРІ
+// @Tags rate
+// @Produce json
+// @Success 200 {object} RateMeasurement
+// @Failure 400 {string} string "Invalid status value"
+// @Router /rate [get]
 func getRate() (RateMeasurement, error) {
 	rate, err := getLastRate()
 	if err != nil || time.Since(rate.Timestamp) > 24*time.Hour {
@@ -44,6 +56,14 @@ func getRate() (RateMeasurement, error) {
 	return rate, nil
 }
 
+// @Summary Підписати емейл на отримання поточного курсу
+// @Description Запит має перевірити, чи немає данної електронної адреси в поточній базі даних і, в разі її відсутності, записати її.
+// @Tags subscription
+// @Produce json
+// @Param email formData string true "Електронна адреса, яку потрібно підписати"
+// @Success 200 {string} string "E-mail додано"
+// @Failure 409 {string} string "Повертати, якщо e-mail вже є в базі даних"
+// @Router /subscribe [post]
 func trySubscribe(email string) error {
 	// if database has email -> return error
 	// otherwise add a new email to the database
@@ -108,6 +128,11 @@ func setupDatabase() *sqlx.DB {
 	return db
 }
 
+// @title Exchange Rate API
+// @version 1.0
+// @description Простий сервер для отримання поточного курса USD до UAH.
+// @host gses2.app
+// @BasePath /api
 func setupRouter() *gin.Engine {
 	r := gin.Default()
 
@@ -118,9 +143,9 @@ func setupRouter() *gin.Engine {
 	r.GET("/rate", func(c *gin.Context) {
 		var rate, err = getRate()
 		if err != nil {
-			c.String(http.StatusBadRequest, fmt.Sprintf("bad request, error: %s", err.Error()))
+			c.JSON(http.StatusBadRequest, gin.H{"status": "bad request", "error": err.Error()})
 		}
-		c.String(http.StatusOK, fmt.Sprintf("%.2f", rate.Value))
+		c.JSON(http.StatusOK, gin.H{"number": rate.Value})
 	})
 
 	r.POST("/subscribe/:email", func(c *gin.Context) {
@@ -131,6 +156,10 @@ func setupRouter() *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"status": "subscribed"})
 		}
 	})
+
+	docs.SwaggerInfo.BasePath = "/api"
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

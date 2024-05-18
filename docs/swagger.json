@@ -1,0 +1,87 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Простий сервер для отримання потучного курса USD до UAH.",
+        "title": "Exchange Rate API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "gses2.app",
+    "basePath": "/api",
+    "paths": {
+        "/rate": {
+            "get": {
+                "description": "Запит має повертати поточний курс USD до UAH використовуючи будь-який third party сервіс з публічним АРІ",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rate"
+                ],
+                "summary": "Отримати поточний курс USD до UAH",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.RateMeasurement"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid status value",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/subscribe": {
+            "post": {
+                "description": "Запит має перевірити, чи немає данної електронної адреси в поточній базі даних і, в разі її відсутності, записувати її.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscription"
+                ],
+                "summary": "Підписати емейл на отримання поточного курсу",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Електронна адреса, яку потрібно підписати",
+                        "name": "email",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "E-mail додано",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Повертати, якщо e-mail вже є в базі даних",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "main.RateMeasurement": {
+            "type": "object",
+            "properties": {
+                "timestamp": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        }
+    }
+}
