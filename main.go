@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,18 +25,18 @@ type Subscription struct {
 }
 
 type ExchangeRateResp struct {
-	RatesMap map[string]float64 `json:"ratesmap"`
-	Date     time.Time          `json:"date"`
+	RatesMap map[string]float64 `json:"rates"`
+	Date     string             `json:"date"`
 }
 
 func getRate() (RateMeasurement, error) {
 	rate, err := getLastRate()
-	if err != nil || time.Since(rate.Timestamp) > time.Hour {
+	if err != nil || time.Since(rate.Timestamp) > 24*time.Hour {
 		err := updateRate()
 		if err != nil {
 			return RateMeasurement{}, err
 		}
-		rate, err = getRate()
+		rate, err = getLastRate()
 		if err != nil {
 			return RateMeasurement{}, err
 		}
@@ -46,11 +47,21 @@ func getRate() (RateMeasurement, error) {
 func trySubscribe(email string) error {
 	// if database has email -> return error
 	// otherwise add a new email to the database
+	var exists bool
+	err := db.Get(&exists, "SELECT EXISTS (SELECT 1 FROM subscription WHERE email = ?)", email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("email already subscribed")
+	}
+	_, err = db.Exec("INSERT INTO subscription (timestamp, email) VALUES (?, ?)", time.Now(), email)
+	return err
 }
 
 func getLastRate() (RateMeasurement, error) {
 	var rate RateMeasurement
-	err := db.Get(&rate, "SELECT timestamp, value FROM usd_uah_rates ORDER BY timestamp DESC LIMIT 1")
+	err := db.Get(&rate, "SELECT timestamp, value FROM usd_uah_rate ORDER BY timestamp DESC LIMIT 1")
 	if err != nil {
 		return RateMeasurement{}, err
 	}
@@ -65,6 +76,28 @@ func updateRate() error {
 	}
 
 	defer resp.Body.Close()
+
+	log.Println("response:", resp)
+
+	var decoded_result ExchangeRateResp
+	if err := json.NewDecoder(resp.Body).Decode(&decoded_result); err != nil {
+		return err
+	}
+
+	log.Println("decoded_result:", decoded_result)
+
+	uah_rate, exists := decoded_result.RatesMap["UAH"]
+	if !exists {
+		return fmt.Errorf("UAH rate not found")
+	}
+
+	date, err := time.Parse("2006-01-02", decoded_result.Date)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("INSERT INTO usd_uah_rate (timestamp, value) VALUES (?, ?)", date, uah_rate)
+	return err
 }
 
 func setupDatabase() *sqlx.DB {
@@ -103,6 +136,7 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
+	db = setupDatabase()
 	r := setupRouter()
 	r.Run(":8080")
 }
