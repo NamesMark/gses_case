@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/go-gomail/gomail"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -18,6 +20,7 @@ import (
 )
 
 var db *sqlx.DB
+var mailer *gomail.Dialer
 
 type RateMeasurement struct {
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
@@ -79,6 +82,54 @@ func trySubscribe(email string) error {
 	return err
 }
 
+func getAllSubscribers() ([]Subscription, error) {
+	var emails []Subscription
+	err := db.Select(&emails, "SELECT email FROM subscription")
+	if err != nil {
+		return nil, err
+	}
+	return emails, nil
+}
+
+// @Summary Відправити актуальний курс USD до UAH на всі електронні адреси, які були підписані раніше.
+// @Description Відправити e-mail з поточним курсом на всі підписані електронні пошти.
+// @Tags subscription
+// @Produce json
+// @Success 200 {string} string "E-mail'и відправлено"
+// @Failure 500 {string} string "Internal server error"
+// @Router /sendEmails [post]
+func sendRateToAll() error {
+	updateRate()
+	var rate, err = getLastRate()
+	if err != nil {
+		return err
+	}
+	date := time.Now().Format("Monday, January 2, 2006")
+	var contents = fmt.Sprintf("Hi! Today is %s The current rate is %.2f", date, rate.Value)
+
+	emails, err := getAllSubscribers()
+	if err != nil {
+		return err
+	}
+
+	for _, email := range emails {
+		err := sendEmail(email.Email, contents)
+		if err != nil {
+			log.Printf("Failed to send email to %s: %v", email.Email, err)
+		}
+	}
+	return nil
+}
+
+func sendEmail(email string, contents string) error {
+	message := gomail.NewMessage()
+	message.SetHeader("From", "noreply@gses2.app")
+	message.SetHeader("To", email)
+	message.SetHeader("Subject", "Today's USD to UAH Rate")
+	message.SetBody("text/plain", contents)
+	return mailer.DialAndSend(message)
+}
+
 func getLastRate() (RateMeasurement, error) {
 	var rate RateMeasurement
 	err := db.Get(&rate, "SELECT timestamp, value FROM usd_uah_rate ORDER BY timestamp DESC LIMIT 1")
@@ -89,7 +140,7 @@ func getLastRate() (RateMeasurement, error) {
 }
 
 func updateRate() error {
-	// go to USD/UAH exchange API and add a new rate measurement to the database
+	// go to exchange rate API
 	resp, err := http.Get("https://api.exchangerate-api.com/v4/latest/USD")
 	if err != nil {
 		return err
@@ -128,6 +179,12 @@ func setupDatabase() *sqlx.DB {
 	return db
 }
 
+func setupMailer() *gomail.Dialer {
+	d := gomail.NewDialer("smtp.example.com", 587, "user", "123456")
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	return d
+}
+
 // @title Exchange Rate API
 // @version 1.0
 // @description Простий сервер для отримання поточного курса USD до UAH.
@@ -157,6 +214,15 @@ func setupRouter() *gin.Engine {
 		}
 	})
 
+	r.POST("/sendEmails", func(c *gin.Context) {
+		err := sendRateToAll()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "internal server error", "error": err.Error()})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"status": "sent emails"})
+		}
+	})
+
 	docs.SwaggerInfo.BasePath = "/api"
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -166,6 +232,7 @@ func setupRouter() *gin.Engine {
 
 func main() {
 	db = setupDatabase()
+	mailer = setupMailer()
 	r := setupRouter()
 	r.Run(":8080")
 }

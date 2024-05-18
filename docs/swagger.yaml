@@ -10,7 +10,7 @@ definitions:
 host: gses2.app
 info:
   contact: {}
-  description: Простий сервер для отримання потучного курса USD до UAH.
+  description: Простий сервер для отримання поточного курса USD до UAH.
   title: Exchange Rate API
   version: "1.0"
 paths:
@@ -32,10 +32,29 @@ paths:
       summary: Отримати поточний курс USD до UAH
       tags:
       - rate
+  /sendEmails:
+    post:
+      description: Відправити e-mail з поточним курсом на всі підписані електронні
+        пошти.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: E-mail'и відправлено
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Відправляти актуальний курс USD до UAH на всі електронні адреси, які
+        були підписані раніше.
+      tags:
+      - subscription
   /subscribe:
     post:
       description: Запит має перевірити, чи немає данної електронної адреси в поточній
-        базі даних і, в разі її відсутності, записувати її.
+        базі даних і, в разі її відсутності, записати її.
       parameters:
       - description: Електронна адреса, яку потрібно підписати
         in: formData

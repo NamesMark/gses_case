@@ -41,9 +41,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/sendEmails": {
+            "post": {
+                "description": "Відправити e-mail з поточним курсом на всі підписані електронні пошти.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscription"
+                ],
+                "summary": "Відправляти актуальний курс USD до UAH на всі електронні адреси, які були підписані раніше.",
+                "responses": {
+                    "200": {
+                        "description": "E-mail'и відправлено",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/subscribe": {
             "post": {
-                "description": "Запит має перевірити, чи немає данної електронної адреси в поточній базі даних і, в разі її відсутності, записувати її.",
+                "description": "Запит має перевірити, чи немає данної електронної адреси в поточній базі даних і, в разі її відсутності, записати її.",
                 "produces": [
                     "application/json"
                 ],
@@ -99,7 +125,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Exchange Rate API",
-	Description:      "Простий сервер для отримання потучного курса USD до UAH.",
+	Description:      "Простий сервер для отримання поточного курса USD до UAH.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }
