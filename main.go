@@ -199,8 +199,7 @@ func setupMailer() *gomail.Dialer {
 
 func setupCron() *cron.Cron {
 	c := cron.New()
-	//c.AddFunc("@daily", func() {
-	c.AddFunc("@hourly", func() { // for testing purposes; TODO: change back to daily
+	c.AddFunc("@daily", func() {
 		if err := sendRateToAll(); err != nil {
 			log.Printf("Error sending rate to all: %v", err)
 		}

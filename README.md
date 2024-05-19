@@ -26,13 +26,17 @@ HTTP server in Go that sends USD/UAH rates in to subscribed users by email.
 
 GET /rate:
 
-![alt text](res/rate.png)
+![GET rate worked](res/rate.png)
 
 Sent emails:
 
-![alt text](res/sent.png)
+![emails sent successfully](res/sent.png)
+
+Cron job worked (with `@hourly` setting):
+
+![cron job worked](res/cron.png)
 
 Swagger:
 
-![alt text](res/swagger.png)
+![swagger documentation is available](res/swagger.png)
 
