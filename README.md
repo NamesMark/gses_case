@@ -13,7 +13,7 @@ HTTP server in Go that sends USD/UAH rates in to subscribed users by email.
 | ⠀⠀post:/subscribe |  | ✅ |
 | ⠀⠀post:/sendEmails |  | ✅ |
 | get exchange rate | net/http | ✅ |
-| send emails |  | ✅ |
+| send emails | gomail | ✅ |
 | periodic jobs | robfig/cron | ✅ |
 | Docker-compose |  |  |
 | Database | sqlite, sqlx | ✅ |

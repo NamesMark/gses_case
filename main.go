@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-gomail/gomail"
+	"github.com/joho/godotenv"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -19,6 +20,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/go-gomail/gomail"
 	"github.com/robfig/cron/v3"
 )
 
@@ -171,7 +173,8 @@ func updateRate() error {
 }
 
 func setupDatabase() *sqlx.DB {
-	db, err := sqlx.Connect("sqlite3", "exchange.db")
+	db_file := os.Getenv("DATABASE_FILE")
+	db, err := sqlx.Connect("sqlite3", db_file)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -252,6 +255,10 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
 	db = setupDatabase()
 	mailer = setupMailer()
 	setupCron()
