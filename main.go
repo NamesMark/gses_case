@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-gomail/gomail"
@@ -13,10 +15,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	docs "github.com/NamesMark/gses_case/docs"
-
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	"github.com/robfig/cron/v3"
 )
 
 var db *sqlx.DB
@@ -148,14 +151,10 @@ func updateRate() error {
 
 	defer resp.Body.Close()
 
-	log.Println("response:", resp)
-
 	var decoded_result ExchangeRateResp
 	if err := json.NewDecoder(resp.Body).Decode(&decoded_result); err != nil {
 		return err
 	}
-
-	log.Println("decoded_result:", decoded_result)
 
 	uah_rate, exists := decoded_result.RatesMap["UAH"]
 	if !exists {
@@ -180,9 +179,31 @@ func setupDatabase() *sqlx.DB {
 }
 
 func setupMailer() *gomail.Dialer {
-	d := gomail.NewDialer("smtp.example.com", 587, "user", "123456")
+	host := os.Getenv("SMTP_HOST")
+	portString := os.Getenv("SMTP_PORT")
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		log.Fatalf("Invalid port number: %v", err)
+	}
+
+	d := gomail.NewDialer(host, port, username, password)
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	return d
+}
+
+func setupCron() *cron.Cron {
+	c := cron.New()
+	//c.AddFunc("@daily", func() {
+	c.AddFunc("@hourly", func() { // for testing purposes; TODO: change back to daily
+		if err := sendRateToAll(); err != nil {
+			log.Printf("Error sending rate to all: %v", err)
+		}
+	})
+	c.Start()
+	return c
 }
 
 // @title Exchange Rate API
@@ -233,6 +254,7 @@ func setupRouter() *gin.Engine {
 func main() {
 	db = setupDatabase()
 	mailer = setupMailer()
+	setupCron()
 	r := setupRouter()
 	r.Run(":8080")
 }
