@@ -3,20 +3,20 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /app/main .
+RUN go build -o main . 
+RUN ls -la /app
 
 # Runtime
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates sqlite
-WORKDIR /root
-COPY --from=builder /app/main /root/main
+FROM debian:12.5-slim
+RUN apt-get update && apt-get install -y ca-certificates sqlite3
+WORKDIR /root/
+COPY --from=builder /app/main .
+RUN ls -la /root
 COPY .env .
-COPY migrations ./migrations
 COPY db ./db
 
-RUN chmod +x /root/main
-RUN ls -l /root/
+RUN chmod +x main
 
 EXPOSE 8080
 
-CMD ["/root/main"]
+ENTRYPOINT ["/root/main"]
