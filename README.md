@@ -12,14 +12,15 @@ HTTP server in Go that sends USD/UAH rates in to subscribed users by email.
 | ⠀⠀get:/rate |  | ✅ |
 | ⠀⠀post:/subscribe |  | ✅ |
 | ⠀⠀post:/sendEmails |  | ✅ |
-| get exchange rate | net/http | ✅ |
-| send emails | gomail | ✅ |
-| periodic jobs | robfig/cron | ✅ |
-| Docker-compose |  |  |
+| Get exchange rate | net/http | ✅ |
+| Send emails | gomail | ✅ |
+| Periodic jobs | robfig/cron | ✅ |
 | Database | sqlite, sqlx | ✅ |
-| migration | sqlx-migrations | ✅ |
-| swagger | swaggo | ✅ |
-| tests |  |  |
+| Migration | sqlx-migrations | ✅ |
+| Swagger | swaggo | ✅ |
+| Containerize | Docker, alpine | ✅ |
+| Run migration on start | Docker-compose, sqlx-cli | ✅ |
+| Tests |  |  |
 
 
 ## Evidence

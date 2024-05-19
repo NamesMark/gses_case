@@ -1,0 +1,10 @@
+FROM rust:latest AS builder
+WORKDIR /app
+RUN cargo install sqlx-cli
+
+# Runtime
+FROM rust:latest AS runtime
+COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
+WORKDIR /app
+COPY ./migrations ./migrations
+ENTRYPOINT ["sqlx", "migrate", "run"]
